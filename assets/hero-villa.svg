@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fdf6ee"/>
+      <stop offset="1" stop-color="#f6e8dc"/>
+    </linearGradient>
+    <linearGradient id="tank" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#d9d9d9"/>
+      <stop offset="0.5" stop-color="#f2f2f2"/>
+      <stop offset="1" stop-color="#c9c9c9"/>
+    </linearGradient>
+    <linearGradient id="win" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffd98a"/>
+      <stop offset="1" stop-color="#ffb84d"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 背景 -->
+  <rect width="640" height="420" rx="12" fill="url(#sky)"/>
+
+  <!-- 地面 -->
+  <rect x="0" y="356" width="640" height="64" fill="#e8ded2"/>
+  <line x1="0" y1="356" x2="640" y2="356" stroke="#d8cbbc" stroke-width="2"/>
+
+  <!-- 大宅主体 -->
+  <g>
+    <!-- 主楼 -->
+    <rect x="90" y="150" width="240" height="206" fill="#2b2b2b"/>
+    <!-- 屋顶 -->
+    <polygon points="74,150 210,84 346,150" fill="#1a1a1a"/>
+    <!-- 副楼 -->
+    <rect x="330" y="196" width="150" height="160" fill="#3a3a3a"/>
+    <polygon points="318,196 405,142 492,196" fill="#242424"/>
+    <!-- 车库/裙房 -->
+    <rect x="30" y="240" width="90" height="116" fill="#404040"/>
+    <polygon points="22,240 75,206 128,240" fill="#2e2e2e"/>
+
+    <!-- 暖窗（主楼） -->
+    <g fill="url(#win)">
+      <rect x="116" y="180" width="34" height="44" rx="2"/>
+      <rect x="170" y="180" width="34" height="44" rx="2"/>
+      <rect x="224" y="180" width="34" height="44" rx="2"/>
+      <rect x="278" y="180" width="34" height="44" rx="2"/>
+      <rect x="116" y="252" width="34" height="44" rx="2"/>
+      <rect x="170" y="252" width="34" height="44" rx="2"/>
+      <rect x="278" y="252" width="34" height="44" rx="2"/>
+      <!-- 副楼窗 -->
+      <rect x="352" y="224" width="30" height="38" rx="2"/>
+      <rect x="402" y="224" width="30" height="38" rx="2"/>
+      <rect x="352" y="288" width="30" height="38" rx="2"/>
+      <rect x="402" y="288" width="30" height="38" rx="2"/>
+      <!-- 车库门 -->
+      <rect x="46" y="268" width="58" height="88" rx="2" fill="#565656"/>
+    </g>
+    <!-- 门 -->
+    <rect x="228" y="288" width="36" height="68" fill="#EA0021"/>
+  </g>
+
+  <!-- 热水管路（红色，从设备到各用水点） -->
+  <g fill="none" stroke="#EA0021" stroke-width="5" stroke-linecap="round">
+    <path d="M560 356 V300 H480"/>
+    <path d="M560 300 C 500 300 470 260 430 243"/>
+    <path d="M500 300 C 420 300 380 220 300 202"/>
+    <path d="M520 330 C 420 330 300 290 200 274"/>
+  </g>
+  <!-- 用水点标记 -->
+  <g fill="#EA0021">
+    <circle cx="300" cy="202" r="6"/>
+    <circle cx="430" cy="243" r="6"/>
+    <circle cx="200" cy="274" r="6"/>
+  </g>
+  <!-- 热水到达标识 -->
+  <g stroke="#EA0021" stroke-width="2" fill="none" opacity="0.7">
+    <path d="M296 190 q4 -8 8 0"/>
+    <path d="M426 231 q4 -8 8 0"/>
+    <path d="M196 262 q4 -8 8 0"/>
+  </g>
+
+  <!-- 热水设备（容积式热水炉） -->
+  <g>
+    <rect x="520" y="210" width="80" height="146" rx="18" fill="url(#tank)" stroke="#b5b5b5" stroke-width="1.5"/>
+    <rect x="520" y="248" width="80" height="16" fill="#EA0021"/>
+    <circle cx="560" cy="196" r="10" fill="#EA0021"/>
+    <text x="560" y="200" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff" font-family="Arial">热</text>
+    <!-- 蒸汽 -->
+    <g stroke="#bbb" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.8">
+      <path d="M545 176 q6 -10 0 -20 q-6 -10 0 -20"/>
+      <path d="M575 176 q6 -10 0 -20 q-6 -10 0 -20"/>
+    </g>
+  </g>
+
+  <!-- 树 -->
+  <g>
+    <rect x="36" y="180" width="8" height="60" fill="#5b4636"/>
+    <circle cx="40" cy="166" r="26" fill="#7d9b76"/>
+    <circle cx="22" cy="182" r="16" fill="#8fae86"/>
+  </g>
+</svg>

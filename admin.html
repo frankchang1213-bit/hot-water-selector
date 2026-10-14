@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>管理后台 · EVERHOT 恒热</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; background: #f5f4f2; color: #1a1a1a; }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 32px 20px; }
+    .brand { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .brand img { height: 40px; }
+    .brand h1 { font-size: 20px; letter-spacing: 3px; }
+    .card { background: #fff; border: 1px solid #e6e6e6; border-radius: 10px; padding: 22px 24px; margin-bottom: 20px; }
+    .card h2 { font-size: 15px; letter-spacing: 2px; border-left: 4px solid #EA0021; padding-left: 8px; margin-bottom: 14px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { border: 1px solid #eee; padding: 8px 10px; text-align: left; vertical-align: top; }
+    th { background: #fafafa; font-size: 12px; letter-spacing: 1px; }
+    .empty { color: #999; font-size: 13px; padding: 12px 0; }
+    .toolbar { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; }
+    .toolbar button {
+      border: 1px solid #1a1a1a; background: #fff; border-radius: 6px;
+      padding: 6px 16px; font-size: 13px; cursor: pointer;
+    }
+    .toolbar button:hover { background: #1a1a1a; color: #fff; }
+    .back { color: #888; font-size: 13px; text-decoration: none; }
+    /* 管理员登录门 */
+    .gate { position: fixed; inset: 0; background: #f5f4f2; display: flex; align-items: center; justify-content: center; z-index: 10; }
+    .gate-card { background: #fff; border-radius: 12px; padding: 36px 40px; width: 340px; box-shadow: 0 12px 40px rgba(0,0,0,.12); }
+    .gate-card h1 { font-size: 18px; letter-spacing: 2px; margin-bottom: 18px; }
+    .gate-card input {
+      width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px;
+      font-size: 14px; margin-bottom: 14px;
+    }
+    .gate-card button {
+      width: 100%; border: none; border-radius: 8px; background: #EA0021; color: #fff;
+      padding: 11px; font-size: 14px; font-weight: 700; letter-spacing: 4px; cursor: pointer;
+    }
+    .gate-err { color: #EA0021; font-size: 13px; margin: -6px 0 10px; }
+    pre { font-size: 12px; color: #555; white-space: pre-wrap; margin: 0; }
+  </style>
+</head>
+<body>
+  <!-- 管理员密码门 -->
+  <div class="gate" id="gate">
+    <div class="gate-card">
+      <h1>管理后台</h1>
+      <input type="password" id="gatePwd" placeholder="管理员密码">
+      <p class="gate-err" id="gateErr" style="display:none">密码错误</p>
+      <button id="gateBtn">进 入</button>
+    </div>
+  </div>
+
+  <div class="wrap" id="adminMain" style="display:none">
+    <div class="brand">
+      <h1>管理后台 · 数据留痕</h1>
+      <a class="back" href="index.html">← 返回选型工具</a>
+    </div>
+    <div class="toolbar">
+      <button id="exportBtn">导出 JSON</button>
+      <button id="clearBtn">清空记录</button>
+    </div>
+
+    <div class="card">
+      <h2>登录信息</h2>
+      <div id="loginTable"></div>
+    </div>
+
+    <div class="card">
+      <h2>选型提交记录</h2>
+      <div id="selectTable"></div>
+    </div>
+  </div>
+
+  <script>
+    // 管理员密码（可自行修改）
+
+    // 管理员密码（本地离线模式兜底用；在线部署时由服务端校验）
+    const ADMIN_PWD = "EVERHOT-ADMIN";
+
+    const gate = document.getElementById("gate");
+    const main = document.getElementById("adminMain");
+    let serverData = null; // 在线模式：来自服务器的数据
+
+    document.getElementById("gateBtn").addEventListener("click", tryUnlock);
+    document.getElementById("gatePwd").addEventListener("keydown", (e) => { if (e.key === "Enter") tryUnlock(); });
+    async function tryUnlock() {
+      const pwd = document.getElementById("gatePwd").value;
+      try {
+        const res = await fetch("/api/admin", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ password: pwd }),
+        });
+        const data = await res.json();
+        if (data.ok) {
+          serverData = { logins: data.logins || [], selections: data.selections || [] };
+          unlock();
+          return;
+        }
+        document.getElementById("gateErr").style.display = "block";
+      } catch {
+        // 离线/本地模式：本地校验 + 读 localStorage
+        if (pwd === ADMIN_PWD) unlock();
+        else document.getElementById("gateErr").style.display = "block";
+      }
+    }
+    function unlock() { gate.remove(); main.style.display = ""; render(); }
+
+    const fmt = (ts) => new Date(ts).toLocaleString("zh-CN");
+
+    function getData() {
+      if (serverData) return serverData;
+      return {
+        logins: JSON.parse(localStorage.getItem("everhot_logins") || "[]"),
+        selections: JSON.parse(localStorage.getItem("everhot_selections") || "[]"),
+      };
+    }
+
+    function render() {
+      const { logins, selections: selects } = getData();
+
+      document.getElementById("loginTable").innerHTML = logins.length
+        ? `<table><tr><th>#</th><th>时间</th><th>经销商公司</th><th>手机号码</th></tr>` +
+          logins.map((r, i) => `<tr><td>${i + 1}</td><td>${fmt(r.time)}</td><td>${r.company}</td><td>${r.phone}</td></tr>`).join("") + `</table>`
+        : `<p class="empty">暂无登录记录</p>`;
+
+      document.getElementById("selectTable").innerHTML = selects.length
+        ? `<table><tr><th>#</th><th>时间</th><th>客户</th><th>电话</th><th>地址</th><th>工况</th><th>卫生间配置</th><th>结果</th></tr>` +
+          selects.map((r, i) => `<tr>
+            <td>${i + 1}</td><td>${fmt(r.time)}</td>
+            <td>${r.customer.name}</td><td>${r.customer.phone}</td><td>${r.customer.addr}</td>
+            <td>${r.conditions}</td>
+            <td><pre>${r.bathrooms}</pre></td>
+            <td><pre>${r.result}</pre></td>
+          </tr>`).join("") + `</table>`
+        : `<p class="empty">暂无选型记录</p>`;
+    }
+
+    document.getElementById("exportBtn").addEventListener("click", () => {
+      const blob = new Blob([JSON.stringify(getData(), null, 2)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `恒热选型数据_${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+    });
+
+    document.getElementById("clearBtn").addEventListener("click", () => {
+      if (serverData) { alert("在线模式暂不支持网页清空，请联系技术处理服务器数据文件"); return; }
+      if (confirm("确定清空全部登录与选型记录？此操作不可恢复")) {
+        localStorage.removeItem("everhot_logins");
+        localStorage.removeItem("everhot_selections");
+        render();
+      }
+    });
+  </script>
+</body>
+</html>

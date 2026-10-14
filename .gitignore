@@ -1,0 +1,14 @@
+# 依赖与工具（含服务器密码，绝不入库）
+tools/
+node_modules/
+package.json
+package-lock.json
+
+# 部署与本地调试脚本
+deploy.js
+deploy-probe.js
+serve.js
+hotwater.service.local
+
+# 服务器数据
+data/

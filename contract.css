@@ -1,0 +1,135 @@
+/* ===== 恒热销售及质保服务合同模板 —— 屏幕可填写，打印即标准合同 ===== */
+:root { --rheem-red: #EA0021; --ink: #1a1a1a; --line: #e6e6e6; }
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: "SimSun", "宋体", serif;
+  background: #f0f0f0;
+  color: var(--ink);
+  line-height: 1.9;
+}
+
+/* ===== 屏幕工具栏 ===== */
+.toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: var(--ink);
+  color: #fff;
+  padding: 12px 24px;
+  font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 14px;
+}
+.toolbar .back { color: #fff; text-decoration: none; opacity: .85; }
+.toolbar .back:hover { opacity: 1; }
+.toolbar .tip { color: #aaa; font-size: 12px; margin-left: auto; }
+.btn-print {
+  background: var(--rheem-red);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 22px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  cursor: pointer;
+}
+.btn-print:hover { background: #C2001C; }
+
+/* ===== 合同纸张 ===== */
+.contract {
+  max-width: 800px;
+  margin: 28px auto 60px;
+  background: #fff;
+  padding: 56px 64px;
+  box-shadow: 0 2px 16px rgba(0,0,0,.08);
+  font-size: 14px;
+}
+.contract h1 {
+  text-align: center;
+  font-size: 22px;
+  letter-spacing: 4px;
+  margin-bottom: 10px;
+}
+.contract-no { text-align: right; margin-bottom: 14px; }
+.contract .lead { text-indent: 2em; margin-bottom: 10px; }
+.contract h2 {
+  font-size: 15px;
+  margin: 18px 0 6px;
+  letter-spacing: 1px;
+}
+.contract p { margin: 4px 0; text-align: justify; }
+.contract .party { font-weight: 700; margin-top: 8px; }
+
+/* 下划线填空：屏幕上是输入框，打印时就是填好字的下划线 */
+.blank {
+  border: none;
+  border-bottom: 1px solid var(--ink);
+  background: transparent;
+  font-family: inherit;
+  font-size: inherit;
+  text-align: center;
+  padding: 0 4px;
+  min-width: 110px;
+}
+.blank:focus { outline: none; border-bottom-color: var(--rheem-red); background: #fdf6f7; }
+.b-xs { min-width: 40px; }
+.b-sm { min-width: 90px; }
+.b-md { min-width: 150px; }
+.b-lg { min-width: 180px; }
+.b-xl { width: calc(100% - 12em); min-width: 200px; }
+
+/* 勾选项 */
+.chk { white-space: nowrap; margin-right: 14px; cursor: pointer; }
+.chk input { accent-color: var(--rheem-red); margin-right: 4px; }
+
+/* 产品明细表 */
+.items {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 10px 0;
+  font-size: 13px;
+}
+.items th, .items td {
+  border: 1px solid var(--ink);
+  padding: 6px 8px;
+  text-align: center;
+}
+.items td input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: inherit;
+  text-align: center;
+}
+.items td input:focus { outline: none; background: #fdf6f7; }
+.items .sum-row td { font-weight: 700; }
+
+/* 签署区 */
+.sign {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  margin-top: 40px;
+}
+.sign-line { border-bottom: 1px solid var(--ink); height: 2.2em; }
+
+/* ===== 打印 ===== */
+@media print {
+  body { background: #fff; }
+  .no-print { display: none !important; }
+  .contract {
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+    box-shadow: none;
+    font-size: 12pt;
+  }
+  .blank { background: transparent !important; }
+  /* 浏览器打印 input 值默认可见；去聚焦底色 */
+  .items td input:focus, .blank:focus { background: transparent; }
+}

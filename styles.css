@@ -1007,3 +1007,198 @@ a { text-decoration: none; color: inherit; }
   -webkit-mask-image: radial-gradient(ellipse 92% 92% at 50% 50%, #000 78%, transparent 100%);
   mask-image: radial-gradient(ellipse 92% 92% at 50% 50%, #000 78%, transparent 100%);
 }
+
+/* 导航栏退出按钮 */
+.btn-logout {
+  margin-left: 10px;
+  padding: 8px 16px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: #fff;
+  color: #666;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all .2s;
+}
+.btn-logout:hover {
+  border-color: #e60012;
+  color: #e60012;
+}
+
+/* 报价单可编辑表格 */
+.q-editable td[contenteditable] {
+  cursor: text;
+  border-bottom: 1px dashed #ccc;
+  transition: background .15s;
+}
+.q-editable td[contenteditable]:hover {
+  background: #fff8f8;
+}
+.q-editable td[contenteditable]:focus {
+  outline: 2px solid #e60012;
+  outline-offset: -2px;
+  background: #fff;
+}
+.q-edit-hint {
+  font-size: 12px;
+  color: #999;
+  margin: 4px 0 0;
+}
+@media print {
+  .q-edit-hint, .btn-logout { display: none; }
+  .q-editable td[contenteditable] { border-bottom: none; }
+}
+
+/* 方案书模板页：每页独占一张 A4，页后强制分页 */
+.quote .tpl-page {
+  display: block;
+  width: 100%;
+  margin: 0 0 14px;
+  page-break-after: always;
+  page-break-inside: avoid;
+  border-radius: 4px;
+}
+.quote .tpl-page.tpl-last {
+  page-break-after: auto;
+  margin-bottom: 0;
+}
+
+/* ===== 方案书：16:9 幻灯片版式（与方案书模板同一套设计语言） ===== */
+@page { size: 1280px 720px; margin: 0; }
+
+.quote .slide {
+  position: relative;
+  width: 1280px; height: 720px;
+  overflow: hidden;
+  page-break-after: always;
+  page-break-inside: avoid;
+  background: #fff;
+}
+.quote .slide:last-child { page-break-after: auto; }
+.quote .slide-img img { display: block; width: 1280px; height: 720px; }
+
+/* 生成页：模板同款浅网格底 + 左上大标题 + 右上 logo */
+.quote .slide.gen {
+  padding: 52px 60px 70px;
+  background-image:
+    linear-gradient(rgba(0,0,0,.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,.04) 1px, transparent 1px);
+  background-size: 106px 106px;
+  color: #1a1a1a;
+}
+.quote .s-logo { position: absolute; top: 34px; right: 52px; height: 42px; }
+.quote .s-title { font-size: 34px; font-weight: 800; letter-spacing: 2px; margin: 0; }
+.quote .s-title em { font-style: normal; color: #C8161D; }
+.quote .s-sub { font-size: 13px; letter-spacing: 2px; color: #888; margin: 8px 0 0; }
+.quote .s-rec {
+  display: inline-block; background: #C8161D; color: #fff;
+  font-size: 12px; font-weight: 700; letter-spacing: 2px;
+  padding: 3px 12px; border-radius: 999px; margin-left: 14px; vertical-align: 8px;
+}
+.quote .s-cols { display: flex; gap: 44px; margin-top: 24px; }
+.quote .s-col { flex: 1; min-width: 0; }
+.quote .s-h3 {
+  font-size: 14px; color: #C8161D; letter-spacing: 2px;
+  border-left: 4px solid #C8161D; padding-left: 8px; margin: 18px 0 10px;
+}
+.quote .s-col > .s-h3:first-child { margin-top: 0; }
+.quote .s-kv { display: flex; justify-content: space-between; border-bottom: 1px dashed #e3e3e3; padding: 7px 2px; font-size: 13.5px; }
+.quote .s-kv span { color: #777; }
+.quote .s-kv b { font-weight: 600; }
+.quote .s-bath { display: flex; align-items: center; gap: 10px; border-bottom: 1px dashed #e3e3e3; padding: 8px 2px; font-size: 13px; }
+.quote .s-bath b { min-width: 72px; }
+.quote .s-bath span { flex: 1; color: #444; }
+.quote .s-bath em { font-style: normal; color: #777; white-space: nowrap; }
+.quote .s-sync { font-style: normal; background: #C8161D; color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.quote .s-sell, .quote .s-track { margin: 0 0 8px 18px; font-size: 12.5px; line-height: 1.8; color: #333; }
+.quote .s-sell li::marker, .quote .s-track li::marker { color: #C8161D; }
+.quote .s-warranty { font-size: 12px; font-weight: 700; margin: 6px 0 0; }
+
+/* 方案页报价表：模板同款红头表格 */
+.quote .slide table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 2px; background: #fff; }
+.quote .slide th { background: #B03A2E; color: #fff; font-weight: 700; letter-spacing: 1px; padding: 8px 10px; border: 1px solid #B03A2E; text-align: left; }
+.quote .slide td { border: 1px solid #e0e0e0; padding: 7px 10px; background: #fff; }
+.quote .slide .total-row td { font-weight: 700; }
+.quote .slide .cell-total { color: #C8161D; }
+.quote .s-capex {
+  margin-top: 12px; font-size: 13px;
+  display: flex; justify-content: space-between; align-items: baseline;
+  border-top: 2px solid #1a1a1a; padding-top: 10px;
+}
+.quote .s-capex b { color: #C8161D; font-size: 22px; }
+
+/* 选型依据条 + 页脚 */
+.quote .s-reason {
+  position: absolute; left: 60px; right: 60px; bottom: 56px;
+  background: #fff; border: 1px solid #eee; border-left: 4px solid #C8161D;
+  padding: 9px 16px; font-size: 11.5px; color: #555;
+  display: flex; flex-direction: column; gap: 3px;
+}
+.quote .s-reason.ok { border-left-color: #2e7d32; }
+.quote .s-reason.ok > b { color: #2e7d32; }
+.quote .s-reason.no > b { color: #C8161D; }
+.quote .s-foot {
+  position: absolute; left: 60px; right: 60px; bottom: 22px;
+  display: flex; justify-content: space-between;
+  font-size: 10.5px; color: #999; letter-spacing: 1px;
+}
+
+/* 说明页 */
+.quote .s-notes { margin-top: 28px; font-size: 14px; line-height: 2.1; color: #333; list-style: none; padding: 0; }
+.quote .s-notes li { border-bottom: 1px dashed #e3e3e3; padding: 6px 2px; }
+.quote .s-notes li::before { content: "·"; color: #C8161D; font-weight: 800; margin-right: 10px; }
+
+/* 打印：去掉旧 A4 版式的内边距，每页即一张 16:9 幻灯片 */
+@media print {
+  .quote.print-only { max-width: none; padding: 0; }
+}
+
+/* 屏幕打印预览：逐页展示 16:9 方案书 */
+.preview-page.quote {
+  width: auto; min-height: 0; padding: 8px 0 24px;
+  background: transparent; box-shadow: none;
+}
+.preview-page .slide { margin: 0 auto 28px; box-shadow: 0 10px 36px rgba(0,0,0,.35); }
+.preview-page .slide:last-child { margin-bottom: 0; }
+
+/* 方案书版面饱满度微调 */
+.quote .s-kv { padding: 10px 2px; font-size: 14.5px; }
+.quote .s-bath { padding: 11px 2px; font-size: 13.5px; }
+.quote .s-sell, .quote .s-track { font-size: 13.5px; line-height: 2; }
+.quote .s-h3 { font-size: 15px; margin: 22px 0 12px; }
+.quote .s-warranty { font-size: 12.5px; }
+.quote .slide td { padding: 9px 10px; }
+.quote .s-cols { margin-top: 30px; }
+.quote .s-notes { font-size: 15px; line-height: 2.4; }
+
+/* 初投资/方案投资大价格可编辑 */
+.cost-line b.editable-num, .quote .s-capex b.editable-num {
+  cursor: text;
+  border-bottom: 1px dashed #ccc;
+}
+.cost-line b.editable-num:hover, .quote .s-capex b.editable-num:hover { background: #fff8f8; }
+.cost-line b.editable-num:focus, .quote .s-capex b.editable-num:focus {
+  outline: 2px solid #C8161D;
+  outline-offset: 1px;
+  background: #fff;
+}
+@media print {
+  .cost-line b.editable-num, .quote .s-capex b.editable-num { border-bottom: none; }
+}
+
+/* 安装指导页：管路连接示意图 */
+.quote .s-guide-img {
+  margin-top: 22px;
+  height: 480px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.quote .s-guide-img img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  background: #fff;
+  border: 1px solid #eee;
+  padding: 10px;
+}

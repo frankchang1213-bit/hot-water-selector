@@ -12,6 +12,7 @@
   // bathrooms: [{ name, fixtures: [{key, flow, volume?}], minutes, alwaysOn, concurrent }]
   let bathrooms = [];
   let lastPlans = [];   // 最近一次生成的方案（场景试算器用）
+  let lastQuoteArgs = null; // 最近一次报价单参数（结果页改价后同步重渲染用）
   let lastDem = null;
 
   const listEl = document.getElementById("bathroomList");
@@ -183,19 +184,40 @@
     return items.map((it) => it.product.name).join(" ＋ ");
   }
 
-  function planTable(items) {
+  function planTable(items, editable) {
+    const ce = editable ? ' contenteditable="true"' : "";
     const rows = items.map((it) => {
       const subtotal = it.price * it.qty;
-      return `<tr><td>${it.name}</td><td>${it.spec || "—"}</td>
-        <td>¥${it.price.toLocaleString()}</td><td>${it.qty}</td>
-        <td>¥${subtotal.toLocaleString()}</td></tr>`;
+      // 价格为 0 的科目（运输费/吊装费等）：留空待填，不显示 ¥0
+      return `<tr><td${ce}>${it.name}</td><td${ce}>${it.spec || "—"}</td>
+        <td${ce} class="cell-price">${it.price ? "¥" + it.price.toLocaleString() : ""}</td><td${ce} class="cell-qty">${it.qty}</td>
+        <td class="cell-subtotal">${subtotal ? "¥" + subtotal.toLocaleString() : ""}</td></tr>`;
     });
     const total = items.reduce((s, it) => s + it.price * it.qty, 0);
-    return `<table>
+    return `<table${editable ? ' class="q-editable"' : ""}>
       <tr><th>项目</th><th>规格/说明</th><th>单价</th><th>数量</th><th>小计</th></tr>
       ${rows.join("")}
-      <tr class="total-row"><td colspan="4">合计</td><td>¥${total.toLocaleString()}</td></tr>
-    </table>`;
+      <tr class="total-row"><td colspan="4">合计</td><td class="cell-total">¥${total.toLocaleString()}</td></tr>
+    </table>${editable ? '<p class="q-edit-hint">表格内容与价格可直接点击修改，小计与合计自动重算</p>' : ""}`;
+  }
+
+  /** 报价单表格编辑后：重算每行小计与全表合计 */
+  function recalcEditableTable(table) {
+    let total = 0;
+    table.querySelectorAll("tr").forEach((tr) => {
+      const tds = tr.querySelectorAll("td");
+      if (tds.length < 5) return; // 跳过合计行
+      const num = (el) => parseFloat(el.textContent.replace(/[^\d.]/g, "")) || 0;
+      const sub = num(tds[2]) * num(tds[3]);
+      total += sub;
+      tds[4].textContent = sub ? "¥" + Math.round(sub).toLocaleString() : "";
+    });
+    const totalCell = table.querySelector(".cell-total");
+    if (totalCell) totalCell.textContent = "¥" + Math.round(total).toLocaleString();
+    // 联动：方案总价 = 表格合计
+    const scope = table.closest(".plan, .slide");
+    const big = scope ? scope.querySelector(".plan-total") : null;
+    if (big) big.textContent = "¥" + Math.round(total).toLocaleString();
   }
 
   /** 判定 chips */
@@ -401,9 +423,9 @@
         ${plan.shortfall ? shortfallHtml(plan, dem) : ""}
         <ul class="talk-track">${track}</ul>
         ${checksHtml(plan.checks)}
-        ${planTable(items)}
+        ${planTable(items, true)}
         ${sellingHtml(plan)}
-        <p class="cost-line">初投资 <b>¥${plan.cost.capex.toLocaleString()}</b>（不含辅材）</p>
+        <p class="cost-line">方案总价 <b class="plan-total">¥${items.reduce((s, it) => s + it.price * it.qty, 0).toLocaleString()}</b></p>
         ${scenarioHtml(plan, idx)}
         ${calcStepsHtml(plan, dem, cond.temps)}
       </div>`;
@@ -413,6 +435,7 @@
     html += `<p class="basis-note">设计依据：《热水计算底层逻辑》（恒热内部口径 ${typeof LOGIC_VERSION !== "undefined" ? LOGIC_VERSION : ""}）；GB 50015-2019《建筑给水排水设计标准》</p>`;
 
     tierResults.innerHTML = html;
+    lastQuoteArgs = { dem, cond, cust, quotePlans };
     renderQuote(dem, cond, cust, quotePlans);
 
     // 选型提交留痕（在线：上报服务器；离线：写 localStorage 兜底）
@@ -447,81 +470,157 @@
     resultSection.scrollIntoView({ behavior: "smooth" });
   }
 
-  // ===== 报价单（打印区域） =====
-  // ===== 报价单（打印区域）：高端客户版式 =====
+  // ===== 报价单（打印区域）：16:9 方案书，与方案书模板同一套版式语言 =====
   function renderQuote(dem, cond, cust, plans) {
     const date = new Date().toLocaleDateString("zh-CN");
+    // 方案书模板：封面 + 内容页（第 1~11 页）置前，封底（第 13 页）置后；第 12 页空白跳过
+    const tplSlide = (n, alt) =>
+      `<section class="slide slide-img"><img src="assets/template-pages/page-${n}.jpg" alt="${alt}"></section>`;
+    const tplBefore = Array.from({ length: 11 }, (_, i) => tplSlide(i + 1, `方案书 第${i + 1}页`)).join("");
+    const tplAfter = tplSlide(13, "方案书封底");
     // 经销商信息取登录时填写的内容
     const dealerName = localStorage.getItem("everhot_company") || DEALER.name;
     const dealerPhone = localStorage.getItem("everhot_phone") || "";
-    const bathroomDesc = bathrooms.filter((b) => b.fixtures.length > 0).map((b) => {
+    const foot = `<footer class="s-foot">
+        <span>EVERHOT 恒热 · 别墅热水系统选型方案书</span>
+        <span>经销商：${dealerName}${dealerPhone ? " · " + dealerPhone : ""} · ${date}</span>
+      </footer>`;
+
+    // 户型配置：每个卫生间一行
+    const bathRows = bathrooms.filter((b) => b.fixtures.length > 0).map((b) => {
       const names = b.fixtures.map((f) => {
         const def = FIXTURES[f.key];
-        return def.volume > 0 ? `${def.name}(${f.volume}L)` : `${def.name}(${f.flow}L/min)`;
-      }).join("+");
-      return `${b.name}（${names}，${b.alwaysOn ? "一直洗" : b.minutes + "分钟"}${b.concurrent ? "，同时开启" : ""}）`;
-    }).join("；");
+        return def.volume > 0 ? `${def.name} ${f.volume}L` : `${def.name} ${f.flow}L/min`;
+      }).join(" + ");
+      return `<div class="s-bath">
+        <b>${b.name}</b><span>${names}</span>
+        <em>${b.alwaysOn ? "一直洗" : b.minutes + " 分钟"}</em>
+        ${b.concurrent ? '<i class="s-sync">同时开启</i>' : ""}
+      </div>`;
+    }).join("");
+    const kv = (k, v) => `<div class="s-kv"><span>${k}</span><b>${v}</b></div>`;
 
-    // 每个方案：卖点话术 + 选型依据（计算过程）
-    const sections = plans.map(({ title, rec, plan, items }) => {
+    // 第 12 页位置：客户需求与设计工况
+    const condSlide = `<section class="slide gen">
+      <img class="s-logo" src="assets/everhot-logo.png" alt="EVERHOT 恒热">
+      <h2 class="s-title">客户需求 <em>设计工况</em></h2>
+      <p class="s-sub">VILLA HOT WATER SOLUTION · 选型输入条件</p>
+      <div class="s-cols">
+        <div class="s-col">
+          <h3 class="s-h3">客户信息</h3>
+          ${kv("客户姓名", cust.name)}${kv("联系电话", cust.phone)}
+          ${kv("项目地址", cust.addr)}${kv("常住人口", dem.people + " 人")}
+          <h3 class="s-h3">设计工况</h3>
+          ${kv("季节", cond.seasonName + "季")}${kv("冷水温度", cond.temps.cold + " ℃")}
+          ${kv("机器设定温度", cond.temps.set + " ℃")}${kv("洗澡温度", cond.temps.mixed + " ℃")}
+        </div>
+        <div class="s-col">
+          <h3 class="s-h3">户型配置 · ${dem.concurrentCount} 个卫生间同时用水</h3>
+          ${bathRows}
+        </div>
+      </div>
+      ${foot}
+    </section>`;
+
+    // 每个方案独占一页：标题 + 左（卖点/能力）右（报价表）+ 底部选型依据
+    const planSlides = plans.map(({ title, rec, plan, items }) => {
       const p = plan.items[0].product;
       const cap = plan.cap;
       const t = cond.temps;
       const delta = t.mixed - t.cold;
       const track = talkTrack(plan, dem).map((l) => `<li>${l}</li>`).join("");
       const sell = p.sellingPoints
-        ? `<ul class="q-sell">${p.sellingPoints.map((s) => `<li>${s}</li>`).join("")}</ul>
-           <p class="q-warranty">质保承诺：${p.warranty}</p>` : "";
+        ? `<h3 class="s-h3">产品卖点</h3>
+           <ul class="s-sell">${p.sellingPoints.map((s) => `<li>${s}</li>`).join("")}</ul>
+           <p class="s-warranty">质保承诺：${p.warranty}</p>` : "";
       const judge = plan.checks.r1;
-      // 选型依据：为什么这台机器合理
-      const reason = `
-        <div class="q-reason">
-          <p class="q-reason-title">选型计算依据</p>
-          <p>用水需求：同时开启 ${dem.concurrentCount} 个卫生间，用水总量 <b>${dem.dTotal.toFixed(0)} L</b>，瞬时流量 <b>${dem.qDem.toFixed(1)} L/min</b>，最长用水 <b>${dem.tNeed.toFixed(0)} 分钟</b></p>
-          <p>本机能力：混水量 C = ${p.tankL}×(${t.set}−${t.cold})÷(${t.mixed}−${t.cold}) = <b>${cap.cMix.toFixed(0)} L</b>；
-            产热水能力 R = ${p.powerKW}×860÷(60×${delta}) = <b>${cap.rRate.toFixed(1)} L/min</b></p>
-          <p>可供水量 = C + R×t = ${cap.cMix.toFixed(0)} + ${cap.rRate.toFixed(1)}×${dem.tNeed.toFixed(0)} = <b>${(cap.cMix + cap.rRate * dem.tNeed).toFixed(0)} L</b></p>
-          <p class="q-judge ${judge.pass ? "ok" : "no"}">结论：${judge.pass ? "✓ 满足" : "✗ 不满足"} — ${judge.text}</p>
-        </div>`;
-      return `<section class="q-plan ${rec ? "q-rec" : ""}">
-        <h3 class="q-plan-title"><span class="q-tier">${title}</span>${rec ? '<span class="q-rec-tag">推荐方案</span>' : ""}<span class="q-model">${itemsText(plan.items)}</span></h3>
-        <ul class="q-track">${track}</ul>
-        ${planTable(items)}
-        ${sell}
-        ${reason}
-        <p class="q-capex">方案投资（不含辅材）：<b>¥${plan.cost.capex.toLocaleString()}</b></p>
+      return `<section class="slide gen plan">
+        <img class="s-logo" src="assets/everhot-logo.png" alt="EVERHOT 恒热">
+        <h2 class="s-title"><em>${title}</em>${rec ? '<span class="s-rec">推荐方案</span>' : ""}</h2>
+        <p class="s-sub">${itemsText(plan.items)}</p>
+        <div class="s-cols">
+          <div class="s-col">
+            ${sell}
+            <h3 class="s-h3">能力速览</h3>
+            <ul class="s-track">${track}</ul>
+          </div>
+          <div class="s-col">
+            <h3 class="s-h3">配置与报价</h3>
+            ${planTable(items, true)}
+            <p class="s-capex">方案总价<b class="plan-total">¥${items.reduce((s, it) => s + it.price * it.qty, 0).toLocaleString()}</b></p>
+          </div>
+        </div>
+        <div class="s-reason ${judge.pass ? "ok" : "no"}">
+          <span>用水需求：${dem.concurrentCount} 卫同时 · 总量 ${dem.dTotal.toFixed(0)}L · 瞬时 ${dem.qDem.toFixed(1)}L/min · 最长 ${dem.tNeed.toFixed(0)}min</span>
+          <span>本机可供 <b>${(cap.cMix + cap.rRate * dem.tNeed).toFixed(0)}L</b>（C=${cap.cMix.toFixed(0)}L ＋ R=${cap.rRate.toFixed(1)}L/min×${dem.tNeed.toFixed(0)}min，Δt=${delta}℃）</span>
+          <b>${judge.pass ? "✓ 满足" : "✗ 不满足"} — ${judge.text}</b>
+        </div>
+        ${foot}
       </section>`;
     }).join("");
 
-    quoteEl.innerHTML = `
-      <div class="q-head">
-        <img src="assets/everhot-logo.png" alt="EVERHOT 恒热" class="logo">
-        <div class="q-head-right">报价日期：${date}</div>
-      </div>
-      <div class="q-titlebar">别墅热水系统选型报价单</div>
+    // 安装指导：三个产品的管路连接示意图（摘自说明书），放在封底前三页
+    const GUIDES = [
+      { img: "assets/guide-pages/edgs-pipe.png", name: "燃气容积式热水炉 EDGS 系列 · 基础款方案" },
+      { img: "assets/guide-pages/ehpd-pipe.png", name: "热泵热水器 EHPD400-5207C · 中间款方案" },
+      { img: "assets/guide-pages/gcc-pipe.png", name: "双擎混动容积式热水炉 GCC 系列 · 豪华舒适方案" },
+    ];
+    const guideSlides = GUIDES.map((g, i) => `<section class="slide gen guide">
+        <img class="s-logo" src="assets/everhot-logo.png" alt="EVERHOT 恒热">
+        <h2 class="s-title">安装指导 <em>管路连接示意</em></h2>
+        <p class="s-sub">${g.name} · 摘自产品安装使用说明书（${i + 1} / 3）</p>
+        <div class="s-guide-img"><img src="${g.img}" alt="${g.name} 管路连接示意图"></div>
+        ${foot}
+      </section>`).join("");
 
-      <section class="q-block">
-        <h3 class="q-block-title">客户与设计工况</h3>
-        <div class="q-meta">
-          <p>客户姓名：${cust.name}　联系电话：${cust.phone}</p>
-          <p>项目地址：${cust.addr}</p>
-          <p>设计工况：${cond.seasonName}季（冷水 ${cond.temps.cold}℃）· 机器设定 ${cond.temps.set}℃ · 洗澡温度 ${cond.temps.mixed}℃ · 常住 ${dem.people} 人</p>
-          <p>户型配置：${bathroomDesc}</p>
-        </div>
-      </section>
-
-      ${sections}
-
-      <div class="q-foot">
-        <p>经销商：${dealerName}${dealerPhone ? "　联系电话：" + dealerPhone : ""}</p>
-        <p>说明：本报价为选型参考价，最终价格以实际签约为准；产品参数以厂家最新技术资料为准。</p>
-      </div>`;
+    quoteEl.innerHTML = tplBefore + condSlide + planSlides +
+      `<section class="slide gen note">
+        <img class="s-logo" src="assets/everhot-logo.png" alt="EVERHOT 恒热">
+        <h2 class="s-title">报价 <em>说明</em></h2>
+        <p class="s-sub">NOTES</p>
+        <ul class="s-notes">
+          <li>本报价为选型参考价，最终价格以实际签约为准；产品参数以厂家最新技术资料为准。</li>
+          <li>报价页表格中的项目、规格、单价、数量均可在打印预览前直接点击修改，小计与合计自动重算。</li>
+          <li>设计依据：GB 50015-2019《建筑给水排水设计标准》。</li>
+          <li>400 服务热线：400-8869-119。</li>
+        </ul>
+        ${foot}
+      </section>` + guideSlides + tplAfter;
   }
 
   // ===== 事件绑定 =====
   document.getElementById("addBathroomBtn").addEventListener("click", addBathroom);
   document.getElementById("generateBtn").addEventListener("click", onGenerate);
   document.getElementById("printBtn").addEventListener("click", () => window.print());
+
+  // 报价表格可编辑：结果页与报价单共用，内容/价格改动后自动重算小计与合计
+  document.addEventListener("input", (e) => {
+    const td = e.target.closest ? e.target.closest("td[contenteditable]") : null;
+    if (!td) return;
+    const table = td.closest("table.q-editable");
+    if (!table) return;
+    recalcEditableTable(table);
+    // 结果页改动 → 同步数据并重渲染打印报价单，保证两处一致
+    const card = td.closest(".plan");
+    if (card && lastQuoteArgs) {
+      const cards = Array.from(tierResults.querySelectorAll(".plan"));
+      const idx = cards.indexOf(card);
+      const qp = lastQuoteArgs.quotePlans[idx];
+      if (qp) {
+        const num = (el) => parseFloat(el.textContent.replace(/[^\d.]/g, "")) || 0;
+        Array.from(table.querySelectorAll("tr")).forEach((tr, i) => {
+          const tds = tr.querySelectorAll("td");
+          if (tds.length < 5 || !qp.items[i - 1]) return; // 跳过表头与合计行
+          const it = qp.items[i - 1];
+          it.name = tds[0].textContent.trim();
+          it.spec = tds[1].textContent.trim();
+          it.price = num(tds[2]);
+          it.qty = num(tds[3]) || 1;
+        });
+        renderQuote(lastQuoteArgs.dem, lastQuoteArgs.cond, lastQuoteArgs.cust, lastQuoteArgs.quotePlans);
+      }
+    }
+  });
 
   // 打印预览：把报价单内容克隆到 A4 预览页
   const previewModal = document.getElementById("previewModal");

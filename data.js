@@ -90,6 +90,10 @@ const PRODUCTS = [
 const ACCESSORIES = [
   { id: "PUMP", name: "热水循环泵（即开即热）", price: 1200, note: "别墅多层建议配置" },
   { id: "PIPE", name: "管路及安装辅材", price: 800, note: "按常规户型预估" },
+  { id: "TRANS", name: "运输费", price: 0, note: "按实际发生填写" },
+  { id: "CRANE", name: "吊装费", price: 0, note: "按实际发生填写" },
+  { id: "CARRY", name: "搬运费", price: 0, note: "按实际发生填写" },
+  { id: "OTHER", name: "其它", price: 0, note: "自行填写" },
 ];
 
 // ===== 经销商信息（占位，打印在报价单上）=====

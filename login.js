@@ -13,6 +13,16 @@
     main.style.display = "";
   }
 
+  // 退出登录：清除登录态后回到登录界面
+  const logoutBtn = document.getElementById("logoutBtn");
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", () => {
+      ["everhot_login", "everhot_token", "everhot_company", "everhot_phone"]
+        .forEach((k) => localStorage.removeItem(k));
+      location.reload();
+    });
+  }
+
   if (localStorage.getItem("everhot_login") === "1") { unlock(); return; }
 
   document.getElementById("loginForm").addEventListener("submit", async (e) => {
